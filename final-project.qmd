@@ -1,0 +1,159 @@
+---
+title: "Final-Project"
+author: "Annie Georgeson"
+format: pdf
+editor: visual
+---
+
+Loading in the libraries:
+
+```{r}
+library(tidyverse)
+library(ggthemes)
+library(dplyr)
+
+```
+
+Loading in data: 
+
+```{r}
+food_insecurity = read_csv(here::here("2018_food_insecurity_data.csv"))
+census = read_csv(here::here("clean_ar_census_2018.csv"))
+income = read_csv(here::here("ar_income_data.csv"))
+
+```
+
+Filtering for just Arkansas's food insecurity data:
+
+```{r}
+arkansas_food = food_insecurity |>
+  filter(State %in% c("AR"))
+
+```
+
+Joining the food insecurity data to census data:
+
+```{r}
+food_census_join = left_join(census, arkansas_food, by=c("Geographic Area Name" = "County, State"))
+
+```
+
+Joining the income data as well:
+```{r}
+food_census_join = left_join(food_census_join, income, by=c("Geographic Area Name" = "Geographic Area Name"))
+
+```
+
+Creating a new column that represents the percent of people per county that are food insecure:
+
+```{r}
+food_census_join = food_census_join |>
+  mutate(percent_food_insecure = (`# of Food Insecure Persons in 2018`/ `Estimate!!SEX AND AGE!!Total population` * 100))
+
+```
+
+Histogram to visualize the new column:
+
+```{r}
+ggplot(food_census_join, aes(x=percent_food_insecure)) +
+  geom_histogram(bins=50)
+# can take this out at the end if it seems redundant - i added a plot below this so this can probably go
+```
+
+Identifying the counties with the highest & lowest percentage of food insecure persons:
+
+```{r}
+max_value = max(food_census_join$percent_food_insecure, na.rm = TRUE)
+min_value = min(food_census_join$percent_food_insecure, na.rm = TRUE)
+
+max_value #Phillips County
+min_value #Benton County
+
+```
+
+Creating a new column that represents what percentage of residents are white in each respective county: 
+
+```{r}
+food_census_join = food_census_join |>
+  mutate(percent_white_population = (`Estimate!!RACE!!Total population!!One race!!White`/ `Estimate!!SEX AND AGE!!Total population` * 100))
+
+```
+
+Identifying which counties have the highest & lowest percentage of white residents: 
+
+```{r}
+max_value_white = max(food_census_join$percent_white_population, na.rm = TRUE)
+min_value_white = min(food_census_join$percent_white_population, na.rm = TRUE)
+
+max_value_white #Cleburne County
+min_value_white #Phillips County
+```
+
+Plot to represent the relationship between the percentage of white residents and the percent of the county considered food insecure: 
+
+``` {r}
+ggplot(food_census_join, aes(x=percent_white_population, y=percent_food_insecure)) +
+  xlab("Percentage of White Residents per County") +
+  ylab("Percentage of Food Insecurity per County") + 
+  geom_point(size=.5)
+
+```
+
+Calculating what percentage of the total income of Arkansas was considered below the poverty line (<20,780):
+
+```{r}
+food_census_join = food_census_join |>
+  mutate(percent_poverty_line = (`Estimate!!Households!!Total!!Less than $10,000` + `Estimate!!Households!!Total!!$10,000 to $14,999` + `Estimate!!Households!!Total!!$15,000 to $24,999`))
+
+#note that the percentage is somewhat overstated since the income bracket is from 15,000 to 24,999 
+
+```
+
+```{r}
+max_value_poverty = max(food_census_join$percent_poverty_line, na.rm = TRUE)
+min_value_poverty = min(food_census_join$percent_poverty_line, na.rm = TRUE)
+
+max_value_poverty # Lee County
+min_value_poverty # Saline County
+
+```
+
+Plot to represent the relationship between the percentage of households that fall below the poverty line and the percentage of food insecure populations: 
+
+```{r}
+ggplot(food_census_join, aes(x=percent_poverty_line, y=percent_food_insecure)) +
+  geom_point(size=0.5) +
+  xlab("Percentage of the County Below the Poverty Line") +
+  ylab("Percentage of Food Insecure Populations")
+
+```
+
+Running a regression model with one variable: 
+
+```{r}
+single_variable_model = lm(percent_food_insecure~percent_white_population, food_census_join)
+#food insecurity is being treated as the dependent variable while everything that comes after the ~ is independent 
+
+# probably can cut this
+summary(single_variable_model)
+
+```
+
+Visualization of the one variable regression model: 
+
+```{r}
+ggplot(food_census_join, aes(x=percent_white_population, y=percent_food_insecure)) +
+  geom_point(size=0.5) +
+  geom_abline(intercept=24.17790, slope=-0.07591, color="red")
+
+#cut this too probably
+```
+
+Running a regression model with multiple variables:
+
+```{r}
+multi_variable_model = lm(percent_food_insecure~percent_white_population+percent_poverty_line, food_census_join)
+
+summary(multi_variable_model)
+
+```
