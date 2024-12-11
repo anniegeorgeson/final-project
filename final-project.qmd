@@ -14,7 +14,7 @@ library(dplyr)
 
 ```
 
-Loading in data: 
+Loading in the data: 
 
 ```{r}
 food_insecurity = read_csv(here::here("2018_food_insecurity_data.csv"))
@@ -52,13 +52,6 @@ food_census_join = food_census_join |>
 
 ```
 
-Histogram to visualize the new column:
-
-```{r}
-ggplot(food_census_join, aes(x=percent_food_insecure)) +
-  geom_histogram(bins=50)
-# can take this out at the end if it seems redundant - i added a plot below this so this can probably go
-```
 
 Identifying the counties with the highest & lowest percentage of food insecure persons:
 
@@ -99,15 +92,15 @@ ggplot(food_census_join, aes(x=percent_white_population, y=percent_food_insecure
 
 ```
 
-Calculating what percentage of the total income of Arkansas was considered below the poverty line (<20,780):
+Calculating what percentage of the total income of Arkansas was considered below the poverty line (<$20,780):
 
 ```{r}
 food_census_join = food_census_join |>
   mutate(percent_poverty_line = (`Estimate!!Households!!Total!!Less than $10,000` + `Estimate!!Households!!Total!!$10,000 to $14,999` + `Estimate!!Households!!Total!!$15,000 to $24,999`))
 
-#note that the percentage is somewhat overstated since the income bracket is from 15,000 to 24,999 
-
 ```
+
+Identifying what counties have the highest and lowest poverty rates: 
 
 ```{r}
 max_value_poverty = max(food_census_join$percent_poverty_line, na.rm = TRUE)
@@ -128,32 +121,13 @@ ggplot(food_census_join, aes(x=percent_poverty_line, y=percent_food_insecure)) +
 
 ```
 
-Running a regression model with one variable: 
-
-```{r}
-single_variable_model = lm(percent_food_insecure~percent_white_population, food_census_join)
-#food insecurity is being treated as the dependent variable while everything that comes after the ~ is independent 
-
-# probably can cut this
-summary(single_variable_model)
-
-```
-
-Visualization of the one variable regression model: 
-
-```{r}
-ggplot(food_census_join, aes(x=percent_white_population, y=percent_food_insecure)) +
-  geom_point(size=0.5) +
-  geom_abline(intercept=24.17790, slope=-0.07591, color="red")
-
-#cut this too probably
-```
-
 Running a regression model with multiple variables:
 
 ```{r}
 multi_variable_model = lm(percent_food_insecure~percent_white_population+percent_poverty_line, food_census_join)
 
 summary(multi_variable_model)
+
+# treating percent_food_insecure as the dependent variable and percent_white_population & percent_poverty_line as the independent variables
 
 ```
